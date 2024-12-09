@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        html {
+            background-color: #f0f0f0;
+            min-height: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 10mm;
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+            background: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-container {
+            font-family: Arial, sans-serif;
+            display: flex;
+            gap: 30px;
+        }
+
+        .logo-container {
+            width: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: end;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .company-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .contact-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .address {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .quotation-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .info-table td {
+            border: 1px solid #000;
+            padding: 3px;
+            font-size: 14px;
+        }
+
+        .follow-up-text {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+
+        .total-row {
+            font-weight: bold;
+        }
+
+        .conditions {
+            margin-top: 20px;
+        }
+
+        .conditions span {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .chuki {
+            text-align: right;
+            margin-right: 70px;
+        }
+
+        .chuki h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .chuki h3 {
+            margin: 0;
+            font-size: 20px;
+            padding-right: 60px;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .error {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff6b6b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        @media print {
+            html {
+                background: none;
+                padding: 0;
+            }
+
+            body {
+                counter-reset: page;
+                box-shadow: none;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .page-counter {
+                counter-increment: page;
+                position: fixed;
+                bottom: 10mm;
+                right: 10mm;
+                font-size: 12px;
+            }
+
+            .page-counter::after {
+                content: counter(page);
+            }
+
+            .loading,
+            .error {
+                display: none;
+            }
+
+            .main-content {
+                position: relative;
+            }
+
+            /* Force page break trước signature container nếu không đủ chỗ */
+            .signature-wrapper {
+                position: relative;
+                /* Tính toán không gian cần thiết cho chữ ký */
+                min-height: 100px;
+            }
+
+            /* Định dạng cho chữ ký */
+            .chuki {
+                text-align: right;
+                margin-right: 70px;
+            }
+
+            /* Đảm bảo conditions không bị cắt */
+            .conditions {
+                page-break-after: avoid;
+                /* Luôn kết thúc trang sau conditions */
+            }
+
+
+        }
+    </style>
+    <script>
+        const appId = '67822ec5-c5cb-49ff-bc19-0807139a6ac1';
+        const accessKey = 'V2-26gvL-yo5cJ-jnNZJ-JhBvY-9NZLW-sbTT6-MsNup-p88bi';
+        const region = 'www';
+
+        // Thêm log cho hàm apiRequest
+        function apiRequest(tableName, action, data) {
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
+
+            return $.ajax({
+                url: apiUrl,
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': accessKey,
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    Action: action,
+                    Properties: {
+                        Locale: 'vi-VN',
+                        Timezone: 'Asia/Ho_Chi_Minh'
+                    },
+                    ...data
+                })
+            }).promise(); // Thêm .promise() ở đây để đảm bảo trả về Promise
+        }
+
+        // Load dữ liệu báo giá chính
+        // Hàm loadQuotationData đã được sửa đổi để tải cả dữ liệu chính và chi tiết cùng lúc
+        function loadQuotationData(id) {
+            if (!id) {
+                showError('ID báo giá không hợp lệ');
+                return Promise.reject('ID báo giá không hợp lệ');
+            }
+            showLoading();
+
+            // Create all three API requests
+            const companyPromise = apiRequest('THONGTIN', 'Find', {
+                Rows: [],
+                Properties: {
+                    Selector: 'Filter(THONGTIN, true)'
+                }
+            });
+
+            const quotationPromise = apiRequest('MUAHANG', 'Find', {
+                Rows: [],
+                Properties: {
+                    Selector: `Filter(MUAHANG, [id_muahang] = "${id}")`
+                }
+            });
+
+            const itemsPromise = apiRequest('MUAHANG_CT', 'Find', {
+                Rows: [],
+                Properties: {
+                    Selector: `Filter(MUAHANG_CT, [id_muahang] = "${id}")`
+                }
+            });
+
+            // Execute all promises simultaneously
+            return Promise.all([companyPromise, quotationPromise, itemsPromise])
+                .then(([companyResponse, quotationResponse, itemsResponse]) => {
+                    console.log('Đã nhận dữ liệu công ty:', companyResponse);
+                    console.log('Đã nhận dữ liệu báo giá:', quotationResponse);
+                    console.log('Đã nhận dữ liệu chi tiết:', itemsResponse);
+
+                    // Handle company info
+                    if (companyResponse && companyResponse.length > 0) {
+                        populateCompanyInfo(companyResponse[0]);
+                    } else {
+                        console.log('Sử dụng thông tin công ty mặc định');
+                        populateCompanyInfo({});
+                    }
+
+                    // Handle quotation data
+                    if (!quotationResponse || quotationResponse.length === 0) {
+                        throw new Error('Không tìm thấy dữ liệu báo giá');
+                    }
+                    populateQuotation(quotationResponse[0]);
+
+                    // Handle items data
+                    if (itemsResponse && itemsResponse.length > 0) {
+                        populateItems(itemsResponse);
+                    } else {
+                        document.getElementById('items-table').getElementsByTagName('tbody')[0].innerHTML =
+                            '<tr><td colspan="7" style="text-align: center;">Không có dữ liệu chi tiết</td></tr>';
+                        console.log('Không có dữ liệu chi tiết');
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải:', error);
+                    showError('Lỗi khi tải dữ liệu: ' + (error.responseJSON?.error || error.message));
+                    throw error;
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+        // Load chi tiết báo giá
+        function loadItems(quotationId) {
+            if (!quotationId) {
+                console.error('Invalid quotation ID');
+                showError('ID báo giá không hợp lệ');
+                return Promise.reject(new Error('Invalid quotation ID'));
+            }
+
+            console.log('Loading items for quotation ID:', quotationId);
+            showLoading();
+
+            // Convert jQuery Promise to native Promise
+            return Promise.resolve(apiRequest('MUAHANG_CT', 'Find', {
+                Rows: [],
+                Properties: {
+                    Selector: `Filter(MUAHANG_CT, [id_muahang] = "${quotationId}")`
+                }
+            }))
+                .then(response => {
+                    console.log('Items data received:', response);
+                    if (!response) {
+                        throw new Error('Không nhận được dữ liệu từ server');
+                    }
+
+                    if (response.length > 0) {
+                        try {
+                            populateItems(response);
+                        } catch (err) {
+                            throw new Error('Lỗi khi hiển thị dữ liệu: ' + err.message);
+                        }
+                    } else {
+                        document.getElementById('items-table').getElementsByTagName('tbody')[0].innerHTML =
+                            '<tr><td colspan="7" style="text-align: center;">Không có dữ liệu</td></tr>';
+                        throw new Error('Không có dữ liệu chi tiết báo giá');
+                    }
+                })
+                .catch(error => {
+                    console.error('LoadItems Error:', error);
+                    showError('Lỗi khi tải chi tiết báo giá: ' + (error.responseJSON?.error || error.message));
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+
+        // Add new function to set document title
+        function setDocumentTitle(quotationNumber) {
+            // Remove "QUOTATION FOR " prefix and any whitespace
+            const cleanQuotationNumber = quotationNumber;
+            document.title = cleanQuotationNumber;
+        }
+
+        // Điền thông tin báo giá chính
+        function populateQuotation(data) {
+            const quotationNumber = `ĐƠN ĐẶT HÀNG CHO ${data.id_muahang || ''}`;
+            document.getElementById('quotation-number').textContent = quotationNumber;
+            setDocumentTitle(quotationNumber); // Set document title here
+
+            document.getElementById('customer-name').textContent = data.ten_ncc || '';
+            document.getElementById('customer-attn').textContent = data.nguoi_phu_trach || '';
+            document.getElementById('customer-cc').textContent = data.cc || '';
+            document.getElementById('customer-address').textContent = data.dia_chi || '';
+            document.getElementById('quotation-ref').textContent = data.ref || '';
+            document.getElementById('quotation-date').textContent = formatDate(data.ngay_tao);
+            document.getElementById('quotation-subject').textContent = data.subject || '';
+            document.getElementById('total-soluong').textContent = data.so_luong || '';
+            document.getElementById('total-chiet_khau').textContent = (data.chiet_khau * 100) || '';
+            document.getElementById('total-tien_chiet_khau').textContent = formatCurrency(data.tien_chiet_khau);
+            document.getElementById('total-thanh_tien_sau_chiet_khau').textContent = formatCurrency(data.thanh_tien_sau_chiet_khau);
+            document.getElementById('vat').textContent = (data.vat * 100) || '';
+            document.getElementById('total-tien_vat').textContent = formatCurrency(data.tien_vat);
+            document.getElementById('total-thanh_tien_sau_vat').textContent = formatCurrency(data.thanh_tien_sau_vat);
+
+            console.log('Quotation populated successfully');
+        }
+
+        // Điền chi tiết hàng hóa
+        function populateItems(items) {
+            const tbody = document.getElementById('items-table').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+
+            let totalAmount = 0;
+
+            items.forEach((item, index) => {
+                const row = tbody.insertRow();
+                const amount = (parseFloat(item.don_gia) || 0) * (parseFloat(item.so_luong) || 0);
+                totalAmount += amount;
+
+
+                row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>
+                ${item.ten_hang_hoa }
+            </td>
+            <td>${item.id_hanghoa || 0}</td>
+            <td>${item.dvt || 0}</td>
+            <td>${item.so_luong || 0}</td>
+            <td>${formatCurrency(item.don_gia || 0)}</td>
+            <td>${formatCurrency(amount)}</td>
+
+          `;
+            });
+
+            // Update total amount
+            document.getElementById('total-amount').textContent = formatCurrency(totalAmount);
+
+        }
+
+        // Hàm định dạng ngày tháng
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                const formatted = date.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+                return formatted;
+            } catch (error) {
+                console.error('Date formatting error:', error);
+                return dateString;
+            }
+        }
+
+        // Hàm định dạng tiền tệ
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'decimal',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount || 0);
+        }
+
+        // Hàm hiển thị loading
+        function showLoading() {
+            if (!document.getElementById('loading')) {
+                const loading = document.createElement('div');
+                loading.id = 'loading';
+                loading.className = 'loading';
+                loading.textContent = 'Đang tải dữ liệu...';
+                document.body.appendChild(loading);
+            }
+        }
+
+        // Hàm ẩn loading
+        function hideLoading() {
+            const loading = document.getElementById('loading');
+            if (loading) loading.remove();
+        }
+
+        // Hàm hiển thị lỗi
+        function showError(message) {
+            const error = document.createElement('div');
+            error.className = 'error';
+            error.textContent = message;
+            document.body.appendChild(error);
+            setTimeout(() => error.remove(), 5000);
+        }
+
+        // Thêm hàm tự động in
+        function autoPrint() {
+            window.print();
+        }
+
+        // Thêm hàm mới để tải thông tin công ty
+        function loadCompanyInfo() {
+            showLoading();
+
+            const request = apiRequest('THONGTIN', 'Find', {
+                Rows: [],
+                Properties: {
+                    Selector: 'Filter(THONGTIN, true)'
+                }
+            });
+
+            return Promise.resolve(request)
+                .then(response => {
+                    if (!response || response.length === 0) {
+                        throw new Error('Không tìm thấy thông tin công ty');
+                    }
+                    populateCompanyInfo(response[0]);
+                })
+                .catch(error => {
+                    console.error('Detailed error:', error);
+                    showError('Lỗi khi tải thông tin công ty: ' + (error.responseJSON?.error || error.message));
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+
+        // Thêm hàm mới để điền thông tin công ty
+        function populateCompanyInfo(data) {
+            // Cập nhật tên công ty
+            document.getElementById('company-name').textContent = data.ten_doanh_nghiep_en || 'THAI ANH TUAN CO., LTD.';
+
+            // Cập nhật địa chỉ
+            document.getElementById('company-address').textContent = data.dia_chi_en || 'No. 7 Doi Can Street - 8 Ward - Vung Tau City - SR. Vietnam';
+
+            // Cập nhật số điện thoại và fax
+            document.getElementById('company-tel').textContent = `Tel: ${data.tel || '+84 .254) 3572 866'}`;
+            document.getElementById('company-fax').textContent = `Fax: ${data.fax || '+84 254) 3613 877'}`;
+
+            // Cập nhật email và website
+            try {
+                // Xử lý email
+                const emailData = data.email || 'tat@tat.com.vn';
+                const cleanEmail = emailData.replace(/["{}]/g, '').split(',')[0];
+                document.getElementById('company-email').textContent = `Email: ${cleanEmail}`;
+
+                // Xử lý website
+                const websiteData = data.website || 'www.thaianhtuan.com.vn';
+                try {
+                    // Thử parse JSON nếu là chuỗi JSON
+                    const websiteJson = JSON.parse(websiteData);
+                    document.getElementById('company-website').textContent = `Website: www.thaianhtuan.com.vn`;
+                } catch {
+                    // Nếu không phải JSON, sử dụng giá trị trực tiếp
+                    document.getElementById('company-website').textContent = `Website: www.thaianhtuan.com.vn`;
+                }
+            } catch (error) {
+                console.error('Lỗi khi xử lý email/website:', error);
+                document.getElementById('company-email').textContent = 'Email: tat@tat.com.vn';
+                document.getElementById('company-website').textContent = 'Website: www.thaianhtuan.com.vn';
+            }
+        }
+
+        // Cập nhật phần khởi tạo
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const quotationId = urlParams.get('id');
+
+            if (quotationId) {
+                loadQuotationData(quotationId).then(() => {
+                    setTimeout(() => {
+                        setTimeout(autoPrint, 1000);
+                    }, 500);
+                });
+            } else {
+                showError('Không tìm thấy ID báo giá');
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <div class="main-content">
+        <div class="header-container">
+            <div class="logo-container">
+                <img id="company-logo"
+                    src="https://www.appsheet.com:443/fsimage.png?appid=67822ec5-c5cb-49ff-bc19-0807139a6ac1&datasource=google&filename=DocId%3D1BSqUL9zrMJU3XCfrNTbWfrOM9sFz9qdq&signature=f12a273e1329ff74f308a076fc7e8dc720f80968cd99bd5b748a0fc43a9d0393&tableprovider=google&userid=612701497"
+                    alt="Company Logo">
+            </div>
+            <div class="header-content">
+                <div class="company-name" id="company-name"></div>
+                <div class="address" id="company-address"></div>
+                <div class="contact-info">
+                    <span id="company-tel"></span>
+                    <span style="padding-right: 52px;" id="company-fax"></span>
+                </div>
+                <div class="contact-info">
+                    <span id="company-email"></span>
+                    <span id="company-website"></span>
+                </div>
+            </div>
+        </div>
+        <div id="quotation-number" class="quotation-title"></div>
+
+        <table class="info-table">
+            <tr>
+                <td style="width: 3mm;">To</td>
+                <td style="width: 90mm;" id="customer-name" class="bold"></td>
+                <td style="width: 5mm;">From</td>
+                <td class="bold">THAI ANH TUAN CO., LTD</td>
+            </tr>
+            <tr>
+                <td>Attn</td>
+                <td id="customer-attn"></td>
+                <td>Ref</td>
+                <td id="quotation-ref"></td>
+            </tr>
+            <tr>
+                <td>Cc</td>
+                <td id="customer-cc"></td>
+                <td>Date</td>
+                <td id="quotation-date"></td>
+            </tr>
+            <tr>
+                <td>Add</td>
+                <td id="customer-address"></td>
+                <td>Subject</td>
+                <td id="quotation-subject"></td>
+            </tr>
+        </table>
+
+        <div class="follow-up-text">
+            1/ Tên hàng, thông số kỹ thuật và giá trị hàng hóa:
+        </div>
+
+        <table id="items-table">
+            <thead>
+                <tr>
+                    <th>Stt</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Mã sản phẩm</th>
+                    <th>Màu</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá (VND)</th>
+                    <th>Thành tiền (VND)</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="4">Tổng số lượng</td>
+                    <td id="total-soluong" colspan="1"></td>
+                    <td colspan="1"></td>
+                    <td id="total-amount" colspan="1"></td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="5">Tổng cộng giá trị chiết khấu <span id="total-chiet_khau"></span>% (VNĐ)</td>
+                    <td id="total-tien_chiet_khau" colspan="1"></td>
+                    <td id="total-thanh_tien_sau_chiet_khau" colspan="1"></td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="5">Tổng cộng giá trị đã bao gồm thuế GTGT <span id="vat"></span>% (VNĐ)</td>
+                    <td id="total-tien_vat" colspan="1"></td>
+                    <td id="total-thanh_tien_sau_vat" colspan="1"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="conditions">
+            <span>* Thời gian giao hàng:</span> <br>
+            <span>* Địa điểm giao hàng:</span> <br>
+            <span>Người nhận</span>
+        </div>
+        <div class="signature-wrapper">
+            <div class="signature-container">
+                <div class="chuki">
+                    <h3>GIÁM ĐỐC</h3>
+                    <h2>THAI ANH TUAN CO., LTD</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
